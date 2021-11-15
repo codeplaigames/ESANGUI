@@ -2,7 +2,7 @@
         Read Gyro and Accelerometer by Interfacing Raspberry Pi with MPU6050 using Python
 	http://www.electronicwings.com
 '''
-#import smbus			#import SMBus module of I2C
+import smbus			#import SMBus module of I2C
 from time import sleep          #import
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QThread
 from settings import *
@@ -28,10 +28,10 @@ class mpu60(QThread):
     cambio_senhal = pyqtSignal(np.ndarray)
     def __init__(self, parent: QObject):
         super().__init__(parent)
-        self.bus = 0#smbus.SMBus(1) 	# or bus = smbus.SMBus(0) for older version boards
+        self.bus = smbus.SMBus(1) # or bus = smbus.SMBus(0) for older version boards
         self.Device_Address = 0x68   # MPU6050 device address
         self.run_flag = True
-        #self.MPU_Init()
+        self.MPU_Init()
 
         
     def MPU_Init(self):
@@ -87,7 +87,8 @@ class mpu60(QThread):
 
     def run(self):
         while self.run_flag:
-            medidas = ( random.random()*2 - 0.9, random.random()*2 - 0.9, random.random()*2 - 0.9, random.random()*2 - 0.9, random.random()*2 - 0.9, random.random()*2 - 0.9) #self.readingnow()
+            medidas = self.readingnow()
+            #( random.random()*2 - 0.9, random.random()*2 - 0.9, random.random()*2 - 0.9, random.random()*2 - 0.9, random.random()*2 - 0.9, random.random()*2 - 0.9) #self.readingnow()
             self.cambio_senhal.emit(np.asfarray(medidas))
             sleep(1)
 

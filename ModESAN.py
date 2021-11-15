@@ -12,6 +12,7 @@ from VideoThread import *
 from MplCanvas import *
 from mpu60 import *
 
+from settings import *
 
 class GUI(QWidget):
     def __init__(self):
@@ -54,10 +55,11 @@ class GUI(QWidget):
         print("led 1: ",end=" ")
         self.LD3.power()
 
+  
     def ENA_LED4(self):
         print("led 1: ",end=" ")
         self.LD4.power()
-
+        
     @pyqtSlot(np.ndarray)
     def mpu_values(self, datos):
         print("mpu valores: {}".format(datos))
@@ -135,7 +137,7 @@ class GUI(QWidget):
         self.tswitch.setText("0")
         self.tswitch.setEnabled(False)
         #switch
-        self.btactile = Switch(28, self.tswitch, self)
+        self.btactile = Switch(18, self.tswitch, self)
         self.btactile.start()
         self.btactile.change_val_signal.connect(self.get_tactile)
 
@@ -150,10 +152,10 @@ class GUI(QWidget):
         self.led2 = QPushButton("Led 2")
         self.led3 = QPushButton("Led 3")
         self.led4 = QPushButton("Led 4")
-        self.LD1 = LED(1)
-        self.LD2 = LED(2)
-        self.LD3 = LED(3)
-        self.LD4 = LED(4)
+        self.LD1 = LED(11)
+        self.LD2 = LED(13)
+        self.LD3 = LED(15)
+        self.LD4 = LED(36)
 
         self.led1.clicked.connect(self.ENA_LED1)
         self.led2.clicked.connect(self.ENA_LED2)
@@ -197,7 +199,7 @@ class GUI(QWidget):
         self.batras = QPushButton("Atras")
         self.batras.clicked.connect(self.enatras)
         self.vmotor = QLabel("0")
-        self.pmotor = Motor(10,11,13)
+        self.pmotor = Motor(35,37,33)
         rmotor.addWidget(self.badelante)
         rmotor.addWidget(self.batras)
         self.bmotor_stop = QPushButton("Stop")
@@ -211,10 +213,11 @@ class GUI(QWidget):
         self.motslider.setMaximum(100)
         self.motslider.setValue(0)
         self.motslider.valueChanged.connect(self.cambio_motor)
-        rmotor.addWidget(self.motslider)
+        
         principal.addSpacing(20)
         principal.addWidget(QLabel("Motor"))
         principal.addLayout(rmotor)
+        principal.addWidget(self.motslider)
 
 
         principal.addStretch()
@@ -234,7 +237,7 @@ class GUI(QWidget):
 
     def en_servo_solo(self):
         if(self.objservoSolo == None):
-            self.objservoSolo = Servo(12)
+            self.objservoSolo = Servo(31)
         else:
             self.objservoSolo.stopped()
             self.objservoSolo = None
@@ -250,8 +253,9 @@ class GUI(QWidget):
             self.sultra.start()
             self.bultra.setEnabled(False)
         
+    @pyqtSlot(float)
     def ultra_sonidos(self, dist):
-        self.tultra.setText(str(dist))
+        self.tultra.setText("{:.2f}".format(dist))
 
     def valores_mpu(self, vMPU):
         if (self.mpuobj != None):
@@ -353,9 +357,9 @@ class GUI(QWidget):
 
         #servos connections
         self.servo1 = None
-        self.servo1_pin = 10
+        self.servo1_pin = 32
         self.servo2 = None
-        self.servo2_pin = 12
+        self.servo2_pin = 29
         
     
 
@@ -381,6 +385,7 @@ class GUI(QWidget):
             self.btactile.stop()
             self.sultra.stop()
             self.mpuobj.stop()
+            GPIO.cleanup()
         event.accept()
 
     @pyqtSlot(np.ndarray)
@@ -400,7 +405,7 @@ class GUI(QWidget):
 
     @pyqtSlot(int)
     def get_tactile(self, boton):
-        print("recibio {}".format(boton))
+        #print("recibio {}".format(boton))
         self.tswitch.setText(str(boton))
 
     def slider1cambio(self, value):
@@ -425,13 +430,7 @@ class GUI(QWidget):
             self.bslider1.setText("Off servo1")
             self.slider1.setEnabled(True)
             self.servo1 = Servo(self.servo1_pin)
-            '''
-            GPIO.setup(self.servo1_pin, GPIO.OUT)
-            self.servo1 = GPIO.PWM(self.servo1_pin,50)
-            self.servo1.start(7.5)#0
-            '''
         else:
-            #self.servo1.stop()
             self.bslider1.setText("On servo1")
             self.slider1.setEnabled(False)
             self.slider1.setValue(0)
@@ -445,13 +444,7 @@ class GUI(QWidget):
             self.bslider2.setText("Off servo1")
             self.slider2.setEnabled(True)
             self.servo2 = Servo(self.servo2_pin)
-            '''
-            GPIO.setup(self.servo1_pin, GPIO.OUT)
-            self.servo2 = GPIO.PWM(self.servo2_pin,50)
-            self.servo2.start(7.5)
-            '''
         else:
-            #self.servo2.stop()
             self.bslider2.setText("On servo2")
             self.slider2.setEnabled(False)
             self.slider2.setValue(0)

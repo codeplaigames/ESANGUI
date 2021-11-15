@@ -12,17 +12,18 @@ class Switch(QThread):
         self.run_flag = True
         self.button = port
         self.texto = caja
-        #GPIO.setup(port, GPIO.IN, GPIO.PUD_UP)
+        GPIO.setup(port, GPIO.IN, GPIO.PUD_UP)
         print()
 
     def run(self):
         while self.run_flag:
-            boton = random.randint(0,100) #GPIO.input(self.button)
+            boton = GPIO.input(self.button)
+            #random.randint(0,100) #
             #self.texto.setText(str(boton))
             self.change_val_signal.emit(boton)
-            time.sleep(0.5)
+            time.sleep(1)
 
     def stop(self):
         self.run_flag = False
-        #GPIO.cleanup(self.button)
+        GPIO.cleanup(self.button)
         self.wait()
