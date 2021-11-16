@@ -4,6 +4,11 @@
 '''
 #import smbus			#import SMBus module of I2C
 from time import sleep          #import
+from PyQt5.QtCore import QObject, pyqtSignal, Qt, QThread
+from settings import *
+import numpy as np
+from numpy.core.arrayprint import printoptions
+import random
 
 #some MPU6050 Registers and their Address
 PWR_MGMT_1   = 0x6B
@@ -18,12 +23,15 @@ GYRO_XOUT_H  = 0x43
 GYRO_YOUT_H  = 0x45
 GYRO_ZOUT_H  = 0x47
 
-class mpu60:
+class mpu60(QThread):
 
-    def __init__(self):
-        super().__init__()
+    cambio_senhal = pyqtSignal(np.ndarray)
+    def __init__(self, parent: QObject):
+        super().__init__(parent)
         self.bus = 0#smbus.SMBus(1) 	# or bus = smbus.SMBus(0) for older version boards
         self.Device_Address = 0x68   # MPU6050 device address
+        self.run_flag = True
+        #self.MPU_Init()
 
         
     def MPU_Init(self):
@@ -76,3 +84,13 @@ class mpu60:
         Gz = gyro_z/131.0
 
         return ( Ax,Ay, Az, Gx, Gy, Gz )
+
+    def run(self):
+        while self.run_flag:
+            medidas = ( random.random()*2 - 0.9, random.random()*2 - 0.9, random.random()*2 - 0.9, random.random()*2 - 0.9, random.random()*2 - 0.9, random.random()*2 - 0.9) #self.readingnow()
+            self.cambio_senhal.emit(np.asfarray(medidas))
+            sleep(1)
+
+    def stop(self):
+        self.run_flag = False
+        self.wait()

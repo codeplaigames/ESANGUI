@@ -9,6 +9,7 @@ class Servo:
     def change_ang(self, ang):
         base = 180.0
         pwm_ang = (ang/base)*10.0 + 2.0
+        print('angulo: {}'.format(pwm_ang))
         if (self.servo!= None):
             '''
             self.servo.ChangeDutyCycle(pwm_ang)
@@ -17,4 +18,4 @@ class Servo:
     def stopped(self):
         #self.servo.stop()
         #GPIO.cleanup(self.id)
-        print()
+        print('Stop servo')

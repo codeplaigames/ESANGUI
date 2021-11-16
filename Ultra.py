@@ -6,9 +6,12 @@ import random
 
 
 class Ultra(QThread):
-    def __init__(self, trig=16, echo=22):
+    change_ultra_signal = pyqtSignal(int)
+    def __init__(self, trig, echo, parent: QObject):
+        super().__init__(parent)
         self.GPIO_TRIGGER = trig #16
         self.GPIO_ECHO    = echo #22
+        self.run_flag = True
 
     def distance(self):
         time.sleep(1)
@@ -35,8 +38,20 @@ class Ultra(QThread):
         distance = distancet / 2
 
         print  ("Distance :", distance, " cm")
+        distance = random.randint(10,100)
         return distance
         
+    def run(self):
+        while self.run_flag:
+            dist = self.distance()
+            self.change_ultra_signal.emit(dist)
+            time.sleep(1)
+
+    def stop(self):
+        self.run_flag = False
+        #GPIO.cleanup(GPIO_TRIGGER)
+        #GPIO.cleanup(GPIO_ECHO)
+        self.wait()
 # Set pins as output and input
 #GPIO.setup(GPIO_TRIGGER,GPIO.OUT)  # Trigger
 #GPIO.setup(GPIO_ECHO,GPIO.IN)      # Echo

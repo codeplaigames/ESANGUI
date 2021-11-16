@@ -57,11 +57,24 @@ class GUI(QWidget):
     def ENA_LED4(self):
         print("led 1: ",end=" ")
         self.LD4.power()
+
+    @pyqtSlot(np.ndarray)
+    def mpu_values(self, datos):
+        print("mpu valores: {}".format(datos))
+        self.valores_mpu(datos)
+
+    def activar_mpu(self):
+        if self.mpuobj != None:
+            self.mpuobj.start()
+            self.bmpu.setEnabled(False)
+
+
     def mpu(self):
         hbox = QHBoxLayout()
         self.bmpu = QPushButton("On",self)
-        self.bmpu.clicked.connect(self.valores_mpu)
-        self.mpuobj = mpu60()
+        self.bmpu.clicked.connect(self.activar_mpu)
+        self.mpuobj = mpu60(self)
+        self.mpuobj.cambio_senhal.connect(self.mpu_values)
         #self.mpuobj.MPU_Init()
 
         labelports = QLabel("MPU",self)
@@ -73,7 +86,7 @@ class GUI(QWidget):
         principal.addLayout(hbox)
 
         self.sc = MplCanvas(self, width=5, height=4, dpi=100)
-        self.sc.axes.plot([0,1,2,3,4], [10,1,20,3,40])
+        self.sc.axes.plot([0,1,2,3,4], [-1,1,-1,0,0])
         principal.addWidget(self.sc)
 
         hboxmpu = QHBoxLayout()
@@ -106,8 +119,10 @@ class GUI(QWidget):
         sensorsrow = QHBoxLayout()
         sensorsrow.addWidget(QLabel("Ultrasonido"))
         self.bultra = QPushButton("On",self)
-        self.sultra = Ultra()
+        self.sultra = Ultra(16,22, self)
+        self.sultra.change_ultra_signal.connect(self.ultra_sonidos)
         self.bultra.clicked.connect(self.valor_ultra)
+        
 
         sensorsrow.addWidget(self.bultra)
         self.tultra = QLineEdit()
@@ -185,13 +200,15 @@ class GUI(QWidget):
         self.pmotor = Motor(10,11,13)
         rmotor.addWidget(self.badelante)
         rmotor.addWidget(self.batras)
-        #rmotor.addWidget(self.bgo)
+        self.bmotor_stop = QPushButton("Stop")
+        self.bmotor_stop.clicked.connect(self.pmotor.stop)
+        rmotor.addWidget(self.bmotor_stop)
         rmotor.addSpacing(20)
         rmotor.addWidget(self.vmotor)
         #slide motor
         self.motslider = QSlider(Qt.Horizontal, self)
         self.motslider.setMinimum(0)
-        self.motslider.setMaximum(180)
+        self.motslider.setMaximum(100)
         self.motslider.setValue(0)
         self.motslider.valueChanged.connect(self.cambio_motor)
         rmotor.addWidget(self.motslider)
@@ -229,18 +246,23 @@ class GUI(QWidget):
             self.objservoSolo.change_ang(val)
 
     def valor_ultra(self):
-        di = self.sultra.distance()
-        self.tultra.setText(str(di))
+        if self.sultra != None:
+            self.sultra.start()
+            self.bultra.setEnabled(False)
+        
+    def ultra_sonidos(self, dist):
+        self.tultra.setText(str(dist))
 
-    def valores_mpu(self):
+    def valores_mpu(self, vMPU):
         if (self.mpuobj != None):
-            vMPU = range(6)#self.mpuobj.readingnow()
-            self.ax.setText(str(vMPU(0)))
-            self.ay.setText(str(vMPU(1)))
-            self.az.setText(str(vMPU(2)))
-            self.angx.setText(str(vMPU(3)))
-            self.angy.setText(str(vMPU(4)))
-            self.angz.setText(str(vMPU(5)))
+            vMPU = vMPU.tolist()
+            self.sc.drawio(vMPU)
+            self.ax.setText("{:.2f}".format(vMPU[0]))
+            self.ay.setText("{:.2f}".format(vMPU[1]))
+            self.az.setText("{:.2f}".format(vMPU[2]))
+            self.angx.setText("{:.2f}".format(vMPU[3]))
+            self.angy.setText("{:.2f}".format(vMPU[4]))
+            self.angz.setText("{:.2f}".format(vMPU[5]))
 
 
     def camera(self):
@@ -287,8 +309,8 @@ class GUI(QWidget):
         sliderlayout.addWidget(QLabel("Eje 1"))
         self.ang_eje1 = QLabel("0")
         self.slider1 = QSlider(Qt.Vertical, self)
-        self.slider1.setMinimum(-90)
-        self.slider1.setMaximum(90)
+        self.slider1.setMinimum(0)
+        self.slider1.setMaximum(180)
         self.slider1.setValue(0)
         self.slider1.setEnabled(False)
         self.slider1.valueChanged.connect(self.slider1cambio)
@@ -305,12 +327,12 @@ class GUI(QWidget):
         #las arrow 
         lrow = QHBoxLayout()
         lrow.addWidget(QLabel("Eje 2"))
-        self.leje2 = QLabel("0")
-        lrow.addWidget(self.leje2)
+        self.ang_eje2 = QLabel("0")
+        lrow.addWidget(self.ang_eje2)
         self.slider2 = QSlider(Qt.Horizontal, self)
         self.slider2.setValue(0)
-        self.slider2.setMinimum(-90)
-        self.slider2.setMaximum(90)
+        self.slider2.setMinimum(0)
+        self.slider2.setMaximum(180)
         self.slider2.setEnabled(False)
         self.slider2.valueChanged.connect(self.slider2cambio)
         lrow.addWidget(self.slider2)
@@ -357,6 +379,8 @@ class GUI(QWidget):
         if(self.thread != None):
             self.thread.stop()
             self.btactile.stop()
+            self.sultra.stop()
+            self.mpuobj.stop()
         event.accept()
 
     @pyqtSlot(np.ndarray)
@@ -380,24 +404,27 @@ class GUI(QWidget):
         self.tswitch.setText(str(boton))
 
     def slider1cambio(self, value):
-        base = 180.0
-        pwm_ang = (value/base)*10.0 + 2.0
+        self.ang_eje1.setText(str(value))
         if (self.servo1 != None):
             '''
             self.servo1.ChangeDutyCycle(pwm_ang)
             '''
+            self.servo1.change_ang(value)
+
+
     def slider2cambio(self, value):
-        base = 180.0
-        pwm_ang = (value/base)*10.0 + 2.0
+        self.ang_eje2.setText(str(value))
         if (self.servo2!= None):
             '''
             self.servo2.ChangeDutyCycle(pwm_ang)
             '''
+            self.servo2.change_ang(value)
 
     def sliderservo1Act(self):
         if (self.servo1 == None):
             self.bslider1.setText("Off servo1")
             self.slider1.setEnabled(True)
+            self.servo1 = Servo(self.servo1_pin)
             '''
             GPIO.setup(self.servo1_pin, GPIO.OUT)
             self.servo1 = GPIO.PWM(self.servo1_pin,50)
@@ -408,6 +435,7 @@ class GUI(QWidget):
             self.bslider1.setText("On servo1")
             self.slider1.setEnabled(False)
             self.slider1.setValue(0)
+            self.servo1.stopped()
             self.servo1 = None
             print()
 
@@ -416,6 +444,7 @@ class GUI(QWidget):
         if (self.servo2 == None):
             self.bslider2.setText("Off servo1")
             self.slider2.setEnabled(True)
+            self.servo2 = Servo(self.servo2_pin)
             '''
             GPIO.setup(self.servo1_pin, GPIO.OUT)
             self.servo2 = GPIO.PWM(self.servo2_pin,50)
@@ -426,6 +455,7 @@ class GUI(QWidget):
             self.bslider2.setText("On servo2")
             self.slider2.setEnabled(False)
             self.slider2.setValue(0)
+            self.servo2.stopped()
             self.servo2 = None
             print()
 
